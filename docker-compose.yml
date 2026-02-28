@@ -72,7 +72,9 @@ services:
 
     # MLflow - Experiment tracking and model registry
     mlflow:
-        image: ghcr.io/mlflow/mlflow:v2.15.1
+        build:
+            context: .
+            dockerfile: docker/mlflow.Dockerfile
         container_name: mlops-mlflow
         depends_on:
             postgres:
