@@ -35,7 +35,7 @@ def setup_zenml_stack():
     client = Client()
 
     # Check if we're connected to the ZenML server
-    logger.info(f"ZenML version: {client.zen_store.info.version}")
+    logger.info(f"ZenML server version: {client.zen_store.server_info.version}")
     logger.info(f"Active stack: {client.active_stack_model.name}")
 
     return client

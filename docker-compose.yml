@@ -60,7 +60,17 @@ services:
             - mysql_data:/var/lib/mysql
             - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
         healthcheck:
-            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+            test:
+                [
+                    "CMD",
+                    "mysqladmin",
+                    "ping",
+                    "-h",
+                    "localhost",
+                    "-u",
+                    "root",
+                    "-p${MYSQL_ROOT_PASSWORD:-rootpassword}",
+                ]
             interval: 10s
             timeout: 5s
             retries: 10
@@ -94,7 +104,13 @@ services:
         ports:
             - "5000:5000"
         healthcheck:
-            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')",
+                ]
             interval: 15s
             timeout: 10s
             retries: 10
