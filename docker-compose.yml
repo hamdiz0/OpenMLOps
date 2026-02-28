@@ -46,7 +46,7 @@ services:
 
     # PostgreSQL - Backend database for MLflow and ZenML
     postgres:
-        image: postgres:15
+        image: postgres:latest
         container_name: mlops-postgres
         environment:
             POSTGRES_USER: ${POSTGRES_USER}
@@ -105,7 +105,7 @@ services:
 
     # ZenML Server - Pipeline orchestration
     zenml-server:
-        image: zenmldocker/zenml-server:0.68.0
+        image: zenmldocker/zenml-server:latest
         container_name: mlops-zenml
         depends_on:
             postgres:
