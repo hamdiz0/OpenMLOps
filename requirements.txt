@@ -16,8 +16,8 @@ numpy
 pandas
 scikit-learn
 
-# Database (required for ZenML/MLflow PostgreSQL backend)
-psycopg2-binary
+# Database (required for ZenML/MLflow MySQL backend)
+pymysql
 
 # Visualization (used for confusion matrix plots)
 matplotlib

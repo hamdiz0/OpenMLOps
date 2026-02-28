@@ -44,29 +44,26 @@ services:
         networks:
             - mlops-network
 
-    # PostgreSQL - Backend database for MLflow and ZenML
-    postgres:
-        image: postgres:latest
-        container_name: mlops-postgres
+    # MySQL - Backend database for MLflow and ZenML
+    mysql:
+        image: mysql:8.0
+        container_name: mlops-mysql
         environment:
-            POSTGRES_USER: ${POSTGRES_USER}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-            POSTGRES_DB: ${POSTGRES_DB}
-            ZENML_DATABASE: ${ZENML_DATABASE}
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+            MYSQL_USER: ${MYSQL_USER:-mlops}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD:-mlops}
+            MYSQL_DATABASE: mlflow
         ports:
-            - "5432:5432"
+            - "3306:3306"
         volumes:
-            - postgres_data:/var/lib/postgresql/data
-            - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+            - mysql_data:/var/lib/mysql
+            - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
         healthcheck:
-            test:
-                [
-                    "CMD-SHELL",
-                    "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}",
-                ]
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
             interval: 10s
             timeout: 5s
-            retries: 5
+            retries: 10
+            start_period: 30s
         networks:
             - mlops-network
 
@@ -77,29 +74,30 @@ services:
             dockerfile: docker/mlflow.Dockerfile
         container_name: mlops-mlflow
         depends_on:
-            postgres:
+            mysql:
                 condition: service_healthy
             minio-init:
                 condition: service_completed_successfully
         environment:
-            MLFLOW_BACKEND_STORE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+            MLFLOW_BACKEND_STORE_URI: mysql+pymysql://${MYSQL_USER:-mlops}:${MYSQL_PASSWORD:-mlops}@mysql:3306/mlflow
             MLFLOW_DEFAULT_ARTIFACT_ROOT: s3://${MLFLOW_ARTIFACT_BUCKET}/
             AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
             AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
             MLFLOW_S3_ENDPOINT_URL: http://minio:9000
         command: >
             mlflow server
-            --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+            --backend-store-uri mysql+pymysql://${MYSQL_USER:-mlops}:${MYSQL_PASSWORD:-mlops}@mysql:3306/mlflow
             --default-artifact-root s3://${MLFLOW_ARTIFACT_BUCKET}/
             --host 0.0.0.0
             --port 5000
         ports:
             - "5000:5000"
         healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-            interval: 10s
-            timeout: 5s
+            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+            interval: 15s
+            timeout: 10s
             retries: 10
+            start_period: 30s
         networks:
             - mlops-network
 
@@ -108,12 +106,13 @@ services:
         image: zenmldocker/zenml-server:latest
         container_name: mlops-zenml
         depends_on:
-            postgres:
+            mysql:
                 condition: service_healthy
         environment:
-            ZENML_STORE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${ZENML_DATABASE}
+            ZENML_STORE_URL: mysql://${MYSQL_USER:-mlops}:${MYSQL_PASSWORD:-mlops}@mysql:3306/zenml
             ZENML_SERVER_DEPLOYMENT_TYPE: docker
             ZENML_LOGGING_VERBOSITY: INFO
+            ZENML_DEFAULT_PROJECT_NAME: mlops-cifar10
         ports:
             - "8080:8080"
         healthcheck:
@@ -121,7 +120,7 @@ services:
             interval: 15s
             timeout: 10s
             retries: 10
-            start_period: 30s
+            start_period: 60s
         networks:
             - mlops-network
 
@@ -142,8 +141,8 @@ services:
             AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
             MLFLOW_S3_ENDPOINT_URL: http://minio:9000
             MLFLOW_TRACKING_URI: http://mlflow:5000
-            # ZenML configuration
-            ZENML_STORE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${ZENML_DATABASE}
+            # ZenML configuration - connect to ZenML server via REST API
+            ZENML_STORE_URL: http://zenml-server:8080
             # DVC remote configuration
             DVC_REMOTE_URL: s3://dvc-data
             DVC_REMOTE_ENDPOINT_URL: http://minio:9000
@@ -166,7 +165,7 @@ services:
 
 volumes:
     minio_data:
-    postgres_data:
+    mysql_data:
 
 networks:
     mlops-network:

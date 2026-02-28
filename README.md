@@ -185,7 +185,7 @@ collect_inference_data → run_evidently_report → trigger_decision → store_m
 | Service | Port | Description |
 |---------|------|-------------|
 | `minio` | 9000, 9001 | S3-compatible storage |
-| `postgres` | 5432 | Database for ZenML & MLflow |
+| `mysql` | 3306 | Database for ZenML & MLflow |
 | `mlflow` | 5000 | Experiment tracking |
 | `zenml-server` | 8080 | Pipeline orchestration |
 | `pipeline-runner` | - | Pipeline execution environment |

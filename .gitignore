@@ -145,7 +145,7 @@ mlartifacts/
 .zenml/
 
 # Docker volumes (mounted data)
-postgres_data/
+mysql_data/
 minio_data/
 mlflow_data/
 zenml_data/
